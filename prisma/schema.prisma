@@ -1,0 +1,159 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String         @id
+  name             String         @unique
+  email            String         @unique
+  password         String?
+  username         String?
+  bio              String?
+  profileImage     String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  posts            Post[]
+  comments         Comment[]
+  likes            Like[]
+  savedPosts       SavedPost[]
+  followedBy       Follows[]      @relation("following")
+  following        Follows[]      @relation("follower")
+  sentMessages     Message[]      @relation("sender")
+  receivedMessages Message[]      @relation("receiver")
+  notifications    Notification[]
+  stories          Story[]
+  reports          Report[]
+}
+
+model Post {
+  id        String        @id @default(cuid())
+  content   String
+  imageUrl  String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  author    User          @relation(fields: [authorId], references: [id])
+  authorId  String
+  comments  Comment[]
+  likes     Like[]
+  savedBy   SavedPost[]
+  hashtags  PostHashtag[]
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  author    User     @relation(fields: [authorId], references: [id])
+  authorId  String
+  post      Post     @relation(fields: [postId], references: [id])
+  postId    String
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  post      Post     @relation(fields: [postId], references: [id])
+  postId    String
+
+  @@unique([userId, postId])
+}
+
+model SavedPost {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  post      Post     @relation(fields: [postId], references: [id])
+  postId    String
+
+  @@unique([userId, postId])
+}
+
+model Follows {
+  follower    User     @relation("follower", fields: [followerId], references: [id])
+  followerId  String
+  following   User     @relation("following", fields: [followingId], references: [id])
+  followingId String
+  createdAt   DateTime @default(now())
+
+  @@id([followerId, followingId])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  content    String
+  createdAt  DateTime @default(now())
+  sender     User     @relation("sender", fields: [senderId], references: [id])
+  senderId   String
+  receiver   User     @relation("receiver", fields: [receiverId], references: [id])
+  receiverId String
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  content   String
+  type      String
+  createdAt DateTime @default(now())
+  read      Boolean  @default(false)
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+}
+
+model Hashtag {
+  id    String        @id @default(cuid())
+  name  String        @unique
+  posts PostHashtag[]
+}
+
+model PostHashtag {
+  post      Post    @relation(fields: [postId], references: [id])
+  postId    String
+  hashtag   Hashtag @relation(fields: [hashtagId], references: [id])
+  hashtagId String
+
+  @@id([postId, hashtagId])
+}
+
+model Story {
+  id        String   @id @default(cuid())
+  content   String?
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+}
+
+model Advertisement {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  imageUrl    String
+  targetUrl   String
+  startDate   DateTime
+  endDate     DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  reason      String
+  description String?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  postId      String?
+  commentId   String?
+}
