@@ -17,8 +17,8 @@ const PostDetail = () => {
         <div className="bg-[#181818] rounded-3xl border border-[#2d2d2d] mb-10">
             <PostCard
                 idx={null}
-                post={post}
-                posts={posts}
+                post={post as any}
+                posts={posts as any}
                 setPosts={setPosts}
             />
 
