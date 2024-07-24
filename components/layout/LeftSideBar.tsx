@@ -11,7 +11,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import KeyboardBackspaceIcon from '@mui/icons-material/KeyboardBackspace';
 import WbSunnyOutlinedIcon from '@mui/icons-material/WbSunnyOutlined';
 import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
-import { useClerk } from '@clerk/nextjs';
+import { useClerk, useUser } from '@clerk/nextjs';
 
 const LeftSideBar = () => {
     const [isHover, setHover] = React.useState<{
@@ -33,11 +33,14 @@ const LeftSideBar = () => {
 
     const router = useRouter();
     const { signOut } = useClerk();
+    const { user } = useUser();
 
     const handleClickMenu = (idx: number, page: string) => {
         setActive({ active: true, idx: idx });
         if (idx === 0) {
             router.push(`/`);
+        } else if (idx === 3) {
+            router.push(`/${page.toLocaleLowerCase()}/@${user?.username}`);
         } else {
             router.push(`/${page.toLocaleLowerCase()}`);
         }
@@ -61,13 +64,13 @@ const LeftSideBar = () => {
     };
 
     return (
-        <div className="w-1/4 fixed bg-black">
-            <div className=" w-1/3 h-screen text-[#4d4d4d] pl-3 pb-8 flex flex-col justify-between items-start">
+        <div className="w-[29%] fixed">
+            <div className="w-[45%] h-screen text-[#4d4d4d] pl-3 pb-8 flex flex-col justify-between items-start">
                 <Image
                     src={logo}
                     alt="logo"
-                    width={75}
-                    height={75}
+                    width={70}
+                    height={70}
                     className="hover:scale-110 cursor-pointer transition-transform"
                 />
                 <div className="flex flex-col gap-8 transition-transform">
@@ -118,7 +121,7 @@ const LeftSideBar = () => {
                                 isHover.idx === idx && isHover.hover
                                     ? 'text-white'
                                     : 'text-[#4d4d4d]'
-                            } flex flex-row gap-2 items-center p-3 cursor-pointer`}
+                            } transition-colors duration-200 flex flex-row gap-2 items-center p-3 cursor-pointer`}
                         >
                             <option.icon />
                             <p className="font-medium">{option.title}</p>
@@ -126,10 +129,10 @@ const LeftSideBar = () => {
                     ))}
 
                     {renderOptions && (
-                        <div className="absolute bottom-0 p-2 w-60 bg-[#181818] border border-[#282828] rounded-lg">
+                        <div className="absolute animate-scale-up  bottom-0 p-2 w-60 bg-[#181818] border border-[#282828] rounded-lg">
                             <div
                                 onClick={() => setRenderOptions(false)}
-                                className="p-1 w-8 ml-auto mr-2 cursor-pointer rounded-full hover:bg-stone-700"
+                                className="p-1  w-8 ml-auto mr-2 cursor-pointer rounded-full hover:bg-[#101010]"
                             >
                                 <CloseIcon />
                             </div>
@@ -142,7 +145,7 @@ const LeftSideBar = () => {
                                 <div
                                     onClick={() => handleClickInter(item)}
                                     key={idx}
-                                    className="text-white p-3 mb-2 cursor-pointer hover:bg-[#101010] flex flex-row justify-between rounded-lg"
+                                    className="text-white transition ease-in-out duration-300 p-3 mb-2 cursor-pointer hover:bg-[#101010] flex flex-row justify-between rounded-lg"
                                 >
                                     {item}
                                     {item === 'Interface' && (

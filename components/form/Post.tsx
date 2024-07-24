@@ -8,8 +8,12 @@ import PermMediaOutlinedIcon from '@mui/icons-material/PermMediaOutlined';
 import GifBoxOutlinedIcon from '@mui/icons-material/GifBoxOutlined';
 import TagOutlinedIcon from '@mui/icons-material/TagOutlined';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-import { imageDb } from '@/lib/firsebase';
+import { imageDb } from '../../lib/firsebase';
 import { v4 } from 'uuid';
+import { useAuth } from '@clerk/nextjs';
+import { CircularProgress } from '@mui/material';
+import { useDispatch } from 'react-redux';
+import { resStatus } from '@/lib/redux/slices/statusSlice';
 
 const Post = ({
     open,
@@ -25,31 +29,89 @@ const Post = ({
     const [renderImgFile, setRenderImgFile] = React.useState<string | null>(
         null
     );
-    const [fileUpload, setFileUpload] = React.useState<string | null>(null);
+    const [file, setFile] = React.useState<File | null>(null);
     const fileInputRef = React.useRef<HTMLInputElement | null>(null);
     const [desc, setDesc] = React.useState<
         string | number | readonly string[] | undefined
     >();
+    const [tags, setTags] = React.useState<string[]>([]);
+    const { userId } = useAuth();
+    const [isLoading, setLoading] = React.useState(false);
+    const dispatch = useDispatch();
 
-    const handleUploadFile = React.useCallback(
-        async (e: any) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
+    const handleUploadFile = (e: any) => {
+        const selectedFile = e.target.files?.[0];
+        if (!selectedFile) return;
 
+        setFile(selectedFile);
+        setRenderImgFile(URL.createObjectURL(selectedFile));
+    };
+
+    const handlePost = async () => {
+        if (!file) return;
+
+        try {
+            setLoading(true);
+            // Upload file to Firebase Storage
             const imgRef = ref(imageDb, `files/${v4()}`);
             const snapshot = await uploadBytes(imgRef, file);
             const downloadURL = await getDownloadURL(snapshot.ref);
 
-            setFileUpload(downloadURL);
-            setRenderImgFile(URL.createObjectURL(file));
-        },
-        [imageDb, v4]
-    );
+            let arrHashTags = desc
+                ?.toString()
+                .split(' ')
+                .filter((item) => item.includes('#'));
 
-    const handlePost = async () => {};
+            let description = desc
+                ?.toString()
+                .split(' ')
+                .filter((item) => !item.includes('#'))
+                .join(' ');
+            console.log({ arrHashTags, description });
+
+            const data = {
+                content: description,
+                imageUrl: downloadURL,
+                authorId: userId,
+                hashtags: tags,
+            };
+
+            const res = await fetch(`/api/post/new`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            });
+
+            const dataRes = await res.json();
+
+            if (res.ok) {
+                dispatch(
+                    resStatus({ status: res.status, message: 'Post Success' })
+                );
+                setDesc(undefined);
+                setRenderImgFile(null);
+                setFile(null);
+                setOpen(false);
+            } else {
+                dispatch(
+                    resStatus({ status: res.status, message: dataRes.message })
+                );
+            }
+        } catch (error) {
+            console.log(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
-        <div className="flex flex-col w-1/3 gap-3 items-center">
-            <h1 className="text-white font-semibold text-lg">New Thread</h1>
+        <div className="flex flex-col w-1/3 gap-3 items-center ">
+            <div className="flex flex-row items-center gap-4">
+                <h1 className="text-white font-semibold text-lg">New Thread</h1>
+                {isLoading && <CircularProgress />}
+            </div>
             <div className="bg-[#181818] w-full relative p-8 rounded-2xl border border-[#383939] shadow-lg text-black">
                 <div
                     onClick={() => setOpen(false)}
@@ -87,7 +149,10 @@ const Post = ({
                                 ></Image>
 
                                 <div
-                                    onClick={() => setRenderImgFile(null)}
+                                    onClick={() => {
+                                        setRenderImgFile(null);
+                                        setFile(null);
+                                    }}
                                     className="absolute left-2 top-2 cursor-pointer p-0.5 hover:bg-gray-500 rounded-full"
                                 >
                                     <CloseOutlinedIcon
@@ -137,7 +202,7 @@ const Post = ({
                     <button
                         onClick={handlePost}
                         className={`${
-                            !desc || !renderImgFile
+                            !desc
                                 ? 'cursor-not-allowed text-[#6c6c6c]  border-[#6c6c6c]'
                                 : 'cursor-pointer text-white  border-white'
                         }  px-4 py-2 rounded-lg border`}
